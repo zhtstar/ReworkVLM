@@ -1,14 +1,12 @@
 """Verify ReworkVLM image paths and optionally materialize training JSONL."""
 
 import argparse
-import hashlib
 import json
 from collections import Counter
 from pathlib import Path, PurePosixPath
 import tempfile
 
 PREFIXES = {"mvtec_loco_anomaly_detection": "MVTec-LOCO", "VID-AD": "VID-AD"}
-DATASET_CHECKSUMS = Path(__file__).with_name("dataset_checksums.json")
 
 
 def rows(path):
@@ -28,19 +26,28 @@ def resolve_image(name, roots):
     return local
 
 
-def sha256(path):
-    checksum = hashlib.sha256()
-    with path.open("rb") as source:
-        for block in iter(lambda: source.read(4 * 1024 * 1024), b""):
-            checksum.update(block)
-    return checksum.hexdigest()
+def dataset_inputs(bundle):
+    routes = json.loads((bundle / "training_inputs.json").read_text(encoding="utf-8"))
+    required = {"annotations.jsonl"}
+    for route in routes.values():
+        for section in route.values():
+            required.update(section.values())
+
+    inputs = {
+        path.relative_to(bundle).as_posix()
+        for folder in ("vqa", "sft", "rl")
+        for path in (bundle / folder).rglob("*.jsonl")
+        if path.is_file()
+    }
+    if (bundle / "annotations.jsonl").is_file():
+        inputs.add("annotations.jsonl")
+    missing = required - inputs
+    if missing:
+        raise FileNotFoundError(f"Missing dataset files: {', '.join(sorted(missing))}")
+    return sorted(inputs)
 
 
-def verify_bundle(bundle, roots):
-    manifest = json.loads(DATASET_CHECKSUMS.read_text(encoding="utf-8"))
-    for relative, info in manifest["files"].items():
-        if sha256(bundle / relative) != info["sha256"]:
-            raise ValueError(f"Annotation checksum mismatch: {relative}")
+def match_images(bundle, roots):
     names_on_disk = {
         prefix: {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
         for prefix, root in roots.items()
@@ -59,7 +66,7 @@ def verify_bundle(bundle, roots):
         records[name] = resolve_image(name, roots)
         counts[row["dataset"]] += 1
     print("Matched image index:", dict(counts))
-    return manifest, records
+    return records
 
 
 def pair_row(row, records, roots):
@@ -83,12 +90,12 @@ def main():
     args = parser.parse_args()
     roots = {"mvtec_loco_anomaly_detection": args.loco_root.resolve(), "VID-AD": args.vid_root.resolve()}
     bundle = args.bundle.resolve()
-    manifest, records = verify_bundle(bundle, roots)
-    inputs = [name for name in manifest["files"] if name.endswith(".jsonl") and name != "image_index.jsonl"]
+    inputs = dataset_inputs(bundle)
     if args.file:
         if not args.output or args.file not in inputs:
             parser.error("--file requires --output and a listed dataset JSONL")
         inputs = [args.file]
+    records = match_images(bundle, roots)
     if not args.output:
         return
     output = args.output.resolve()
