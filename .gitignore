@@ -1,0 +1,10 @@
+__pycache__/
+*.sqlite*
+*.safetensors
+*.jsonl
+*.zip
+*.tar*
+.env
+.venv/
+images/
+paired/

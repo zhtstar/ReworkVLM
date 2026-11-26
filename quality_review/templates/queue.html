@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>Review queue</h1>
+<form class="filters" method="get">
+  <label class="search">Search<input type="search" name="q" value="{{ query }}" placeholder="Sample, category, or path"></label>
+  <label>Dataset<select name="dataset">
+    <option value="">All datasets</option>
+    {% for row in datasets %}<option {% if row.dataset == dataset %}selected{% endif %}>{{ row.dataset }}</option>{% endfor %}
+  </select></label>
+  <label>Status<select name="status">
+    <option value="">All statuses</option>
+    {% for value, label in [('pending','Pending'),('reviewed','In review'),('final','Finalized')] %}
+      <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select></label>
+  <button class="primary">Apply filters</button>
+</form>
+<div class="table-wrap panel">
+  <table>
+    <thead><tr><th scope="col">Sample</th><th scope="col">Dataset</th><th scope="col">Status</th><th scope="col">Entries</th></tr></thead>
+    <tbody>
+      {% for row in samples %}
+      <tr>
+        <td><a href="{{ url_for('sample', sample_id=row.id) }}">{{ row.sample_key }}</a><span class="subtle category">{{ row.category }}</span></td>
+        <td>{{ row.dataset or '—' }}</td>
+        <td>{% if row.settled %}<span class="status final">Finalized</span>{% elif row.review_count %}<span class="status active">In review</span>{% else %}<span class="status">Pending</span>{% endif %}</td>
+        <td>{{ row.review_count }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="empty">
+        {% if datasets %}No matching samples.{% else %}No samples have been imported. Use <code>flask --app app import-items</code> to load a JSONL file.{% endif %}
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if page > 1 or more %}
+<nav class="pagination" aria-label="Queue pages">
+  {% if page > 1 %}<a class="button" href="{{ url_for('queue', q=query, dataset=dataset, status=status, page=page-1) }}">← Previous</a>{% endif %}
+  <span>Page {{ page }}</span>
+  {% if more %}<a class="button" href="{{ url_for('queue', q=query, dataset=dataset, status=status, page=page+1) }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
