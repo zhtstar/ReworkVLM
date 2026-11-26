@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 import tempfile
 
 PREFIXES = {"mvtec_loco_anomaly_detection": "MVTec-LOCO", "VID-AD": "VID-AD"}
+DATASET_CHECKSUMS = Path(__file__).with_name("dataset_checksums.json")
 
 
 def rows(path):
@@ -36,7 +37,7 @@ def sha256(path):
 
 
 def verify_bundle(bundle, roots):
-    manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(DATASET_CHECKSUMS.read_text(encoding="utf-8"))
     for relative, info in manifest["files"].items():
         if sha256(bundle / relative) != info["sha256"]:
             raise ValueError(f"Annotation checksum mismatch: {relative}")
