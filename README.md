@@ -44,9 +44,13 @@ Select a checkpoint matching your benchmark or use the Joint checkpoint for the 
 ## Citation
 
 ```bibtex
-@misc{zhang2026reworkvlm,
+@inproceedings{zhang2026should,
   title = {What Should Be Fixed? Rule-Grounded Corrective Actions for Reworkable Logical Anomalies in Industrial Inspection},
   author = {Zhang, Haitao and Chen, Bosheng and Xu, Haote and Tu, Xiaotong and Huang, Yue and Ding, Xinghao},
-  year = {2026}
+  booktitle = {Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing: Industry Track},
+  pages = {4349--4356},
+  year = {2026},
+  doi = {10.18653/2026.emnlp-industry.258},
+  url = {https://aclanthology.org/2026.emnlp-industry.258/}
 }
 ```
